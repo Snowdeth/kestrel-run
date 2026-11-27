@@ -44,6 +44,7 @@ function begin() {
   clock = 0;
   brief.classList.add('hidden');
   banner.classList.remove('show');
+  frame.last = performance.now();
 }
 
 /** Advisory notes for the panel, worst first. */
@@ -65,6 +66,7 @@ function notesFor(ground) {
 function frame(now) {
   const dt = Math.min(0.05, (now - (frame.last || now)) / 1000);
   frame.last = now;
+  if (!running) { paint(ctx, ac || makeAircraft(seed), seed, [], null); }
   if (running) {
     clock += dt;
     steer(ac, keys, dt);
