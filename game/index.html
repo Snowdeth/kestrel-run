@@ -1,0 +1,34 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>Kestrel Run - a low-level ridge flight</title>
+<link rel="stylesheet" href="js/hud.css">
+</head>
+<body>
+<div id="frame">
+  <canvas id="sea" width="960" height="540"></canvas>
+  <div id="glass"></div>
+  <div id="hud">
+    <div class="gauge left">
+      <div class="label">AIRSPEED kt</div>
+      <div class="value" id="ias">000</div>
+      <div class="tape" id="iasTape"></div>
+    </div>
+    <div class="gauge right">
+      <div class="label">ALTITUDE ft</div>
+      <div class="value" id="alt">0000</div>
+      <div class="tape" id="altTape"></div>
+    </div>
+    <div class="compass"><div class="card" id="card">N</div><div class="tick" id="tick"></div></div>
+    <div class="strip" id="strip"></div>
+    <div class="mission" id="mission"></div>
+    <div class="notes" id="notes"></div>
+  </div>
+  <div id="banner"></div>
+  <div id="brief"></div>
+</div>
+<script type="module" src="js/boot.js"></script>
+</body>
+</html>

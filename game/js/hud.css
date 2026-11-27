@@ -1,0 +1,155 @@
+/* Kestrel Run's panel: a cold instrument look in amber and cyan over a dark cockpit. */
+
+:root {
+  --amber: #e6b25e;
+  --cyan: #7fd4e6;
+  --ink: #0b1014;
+  --paper: #d8e6e2;
+}
+
+* { box-sizing: border-box; }
+
+html, body {
+  margin: 0;
+  height: 100%;
+  background: var(--ink);
+  color: var(--paper);
+  font: 13px/1.4 ui-monospace, "SF Mono", Menlo, Consolas, monospace;
+  overflow: hidden;
+}
+
+#frame {
+  position: absolute;
+  inset: 0;
+  max-width: min(100vw, 177.8vh);
+  max-height: min(56.25vw, 100vh);
+  margin: auto;
+  aspect-ratio: 16 / 9;
+  border-radius: 10px;
+  overflow: hidden;
+  box-shadow: 0 24px 80px rgba(0, 0, 0, 0.6);
+}
+
+#sea { display: block; width: 100%; height: 100%; }
+
+/* Windscreen glass: a soft reflection and darkened corners. */
+#glass {
+  position: absolute;
+  inset: 0;
+  pointer-events: none;
+  background:
+    radial-gradient(120% 80% at 30% 10%, rgba(255, 255, 255, 0.12), transparent 60%),
+    radial-gradient(100% 100% at 50% 50%, transparent 55%, rgba(0, 0, 0, 0.42));
+}
+
+#hud { position: absolute; inset: 0; pointer-events: none; }
+
+.gauge {
+  position: absolute;
+  top: 18%;
+  width: 74px;
+  text-align: center;
+}
+
+.gauge.left { left: 22px; }
+.gauge.right { right: 22px; }
+
+.gauge .label { font-size: 10px; letter-spacing: 0.14em; color: var(--cyan); opacity: 0.8; }
+.gauge .value { font-size: 26px; font-weight: 700; color: #eef6f4; letter-spacing: 0.04em; }
+.gauge .value.hot { color: var(--amber); }
+.gauge .tape { margin-top: 4px; height: 120px; overflow: hidden; }
+.gauge .tape i { display: block; font-style: normal; font-size: 10px; line-height: 12px; color: #cfe3dd; }
+
+.compass {
+  position: absolute;
+  top: 14px;
+  left: 50%;
+  transform: translateX(-50%);
+  text-align: center;
+  min-width: 96px;
+  padding: 4px 10px;
+  border-bottom: 2px solid rgba(230, 178, 94, 0.55);
+}
+
+.compass .card { font-size: 20px; font-weight: 700; color: var(--amber); letter-spacing: 0.1em; }
+.compass .tick { font-size: 11px; color: #d8e6e2; opacity: 0.8; }
+
+.strip {
+  position: absolute;
+  top: 76px;
+  left: 50%;
+  transform: translateX(-50%);
+  display: flex;
+  gap: 6px;
+}
+
+.strip b {
+  width: 22px;
+  height: 22px;
+  display: grid;
+  place-items: center;
+  font-size: 11px;
+  border: 1px solid rgba(255, 255, 255, 0.35);
+  border-radius: 50%;
+  color: #e9f2f0;
+}
+
+.strip b.next { border-color: var(--amber); color: var(--amber); box-shadow: 0 0 12px rgba(230, 178, 94, 0.5); }
+.strip b.done { border-color: #78f0aa; color: #78f0aa; background: rgba(120, 240, 170, 0.16); }
+
+.mission {
+  position: absolute;
+  left: 100px;
+  bottom: 16px;
+  max-width: 480px;
+  font-size: 12px;
+  color: #e9f2f0;
+  text-shadow: 0 1px 3px rgba(0, 0, 0, 0.8);
+}
+
+.notes {
+  position: absolute;
+  right: 100px;
+  bottom: 16px;
+  text-align: right;
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+}
+
+.notes span { font-size: 11px; color: #cfe3dd; }
+.notes span.bad { color: var(--amber); }
+
+body.alarm .gauge .value { color: var(--amber); }
+
+#banner {
+  position: absolute;
+  top: 42%;
+  left: 50%;
+  transform: translate(-50%, -50%);
+  font-size: 30px;
+  font-weight: 700;
+  letter-spacing: 0.18em;
+  color: #fff8e6;
+  text-shadow: 0 4px 18px rgba(0, 0, 0, 0.75);
+  opacity: 0;
+  transition: opacity 0.25s ease;
+}
+
+#banner.show { opacity: 1; }
+
+#brief {
+  position: absolute;
+  inset: 0;
+  display: grid;
+  place-content: center;
+  gap: 10px;
+  padding: 40px;
+  text-align: center;
+  background: linear-gradient(rgba(6, 12, 16, 0.86), rgba(6, 12, 16, 0.94));
+}
+
+#brief.hidden { display: none; }
+#brief h1 { margin: 0; font-size: 34px; letter-spacing: 0.08em; color: #f3e9d2; }
+#brief p { margin: 0; max-width: 560px; color: #b9cfc9; }
+#brief .keys { color: var(--cyan); font-size: 12px; letter-spacing: 0.06em; }
