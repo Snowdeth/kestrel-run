@@ -1,41 +1,85 @@
-// A working best-game-01 entry (Node 22, standard library only): the game is this directory's
-// game/ folder, plain static files a desktop browser loads offline (game/index.html and its ES
-// modules, no library and no network request), and the program hands it in. It copies game/ and
-// screenshots/ from beside this file to /output and writes /output/dossier.json, the summary the
-// judge reads, with the vendored make.fun library. A starting point, not a winner: Block Dodger, a
-// plain 2D canvas game where a paddle dodges falling blocks and catches coins, with a title screen,
-// score, lives and levels, game over and restart, flat colours and no sound. Build your own game
-// (any genre, any library you vendor under game/, or none), put your 3 or 4 PNG or JPEG screenshots
-// in screenshots/ (the first by name is the cover) and run it.
+// Kestrel Run's entrypoint (Node 22, standard library only).
+//
+// The game is the static game/ folder beside this file: game/index.html and its ES modules, drawn
+// by the browser's own canvas with no library and no network request. This program is only the
+// hand-in: it assembles /output, guards the judge's limits, and writes the dossier the judge reads.
 //
 // Serve it locally with `node serve.ts`, then open http://localhost:8080.
 // Outside the grader's container, MAKEFUN_OUTPUT_DIR stands in for /output:
 //   mkdir -p out && MAKEFUN_OUTPUT_DIR=out node main.ts
 
-import { cpSync, existsSync, mkdirSync, writeFileSync } from 'node:fs';
-import { join } from 'node:path';
+import { copyFileSync, existsSync, mkdirSync, readdirSync, renameSync, statSync, writeFileSync } from 'node:fs';
+import { join, sep } from 'node:path';
 import { fileURLToPath } from 'node:url';
 import { buildDossier } from './vendor/makefun-game.ts';
+
+// The scorer's caps, from reference/gate.json. The first shapes the dossier's text budget; the rest
+// refuse here what the scorer would refuse later, so a passing build is a passable entry.
+const CAPS = {
+  text_max_bytes: 163840,
+  screenshots: { max: 4, max_bytes: 262144 },
+  game_max_files: 993,
+  game_max_bytes: 50331648,
+  game_path_max_bytes: 1000,
+};
 
 const here = fileURLToPath(new URL('.', import.meta.url));
 const out = process.env.MAKEFUN_OUTPUT_DIR ?? '/output';
 
-mkdirSync(out, { recursive: true });
-cpSync(join(here, 'game'), join(out, 'game'), { recursive: true });
-mkdirSync(join(out, 'screenshots'), { recursive: true });
-if (existsSync(join(here, 'screenshots'))) cpSync(join(here, 'screenshots'), join(out, 'screenshots'), { recursive: true });
+/** Fail the build with one clear line, rather than handing in an entry the scorer rejects. */
+function guard(ok: boolean, why: string): void {
+  if (!ok) {
+    console.error(`kestrel-run: ${why}`);
+    process.exit(1);
+  }
+}
 
-// The scorer's own caps (reference/gate.json): only text_max_bytes shapes the bytes; the others refuse an entry the
-// scorer would refuse (more than 4 screenshots or one over 256 KiB; more than 993 files in game/ or 48 MiB of game
-// files, in all, or a path under game/ over 1000 bytes: game/ counts beside /output's own 1000-entry cap, its
-// screenshots/ and dossier.json).
-writeFileSync(
-  join(out, 'dossier.json'),
-  buildDossier(out, {
-    text_max_bytes: 163840,
-    screenshots: { max: 4, max_bytes: 262144 },
-    game_max_files: 993,
-    game_max_bytes: 50331648,
-    game_path_max_bytes: 1000,
-  }),
+/** Every file under a root, with its size, walked without following links. */
+function walk(root: string, prefix = ''): { path: string; bytes: number }[] {
+  const found: { path: string; bytes: number }[] = [];
+  for (const name of readdirSync(join(root, prefix), { withFileTypes: true })) {
+    const path = prefix ? `${prefix}/${name.name}` : name.name;
+    const full = join(root, path);
+    if (name.isDirectory()) found.push(...walk(root, path));
+    else found.push({ path, bytes: statSync(full).size });
+  }
+  return found;
+}
+
+mkdirSync(out, { recursive: true });
+const shots = join(out, 'screenshots');
+mkdirSync(shots, { recursive: true });
+
+// game/: a flat copy of the static files, then the two caps the scorer counts on it.
+const files = walk(join(here, 'game'));
+guard(files.length <= CAPS.game_max_files, `${files.length} files in game/, limit ${CAPS.game_max_files}`);
+guard(
+  files.reduce((sum, f) => sum + f.bytes, 0) <= CAPS.game_max_bytes,
+  'game/ is over its byte budget',
 );
+for (const f of files) {
+  guard(`${f.path.split(sep).join('/')}`.length <= CAPS.game_path_max_bytes, `game/ path too long: ${f.path}`);
+}
+for (const f of files) {
+  mkdirSync(join(out, 'game', ...f.path.split('/').slice(0, -1)), { recursive: true });
+  copyFileSync(join(here, 'game', ...f.path.split('/')), join(out, 'game', ...f.path.split('/')));
+}
+
+// screenshots/: the cover first by name, so number the files and cap them both ways.
+if (existsSync(join(here, 'screenshots'))) {
+  const pictures = readdirSync(join(here, 'screenshots'))
+    .filter((n) => /\.(png|jpe?g)$/i.test(n))
+    .sort();
+  guard(pictures.length > 0, 'no screenshots found');
+  guard(pictures.length <= CAPS.screenshots.max, `${pictures.length} screenshots, limit ${CAPS.screenshots.max}`);
+  for (const [i, name] of pictures.entries()) {
+    const full = join(here, 'screenshots', name);
+    guard(statSync(full).size <= CAPS.screenshots.max_bytes, `screenshot too heavy: ${name}`);
+    const target = join(shots, `${String(i + 1).padStart(2, '0')}-${name.replace(/^\d+-/, '')}`);
+    copyFileSync(full, target);
+    renameSync(target, target);
+  }
+}
+
+writeFileSync(join(out, 'dossier.json'), buildDossier(out, CAPS));
+console.log(`kestrel-run: handed in ${files.length} game files and the screenshots`);
